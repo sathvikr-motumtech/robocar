@@ -1,0 +1,116 @@
+# Builds the Hugo site in website/ and uploads it to Hostinger over SSH (rsync).
+#
+# - Every push to main that touches website/ deploys to the TEST site (new.motumtech.in).
+# - It also deploys to the LIVE site once the repo variable PRODUCTION_LIVE is "true"
+#   (set after the switch-over from WordPress).
+# - "Run workflow" on the Actions tab lets you deploy either target by hand.
+#
+# Repo secrets:   DEPLOY_SSH_KEY (private key), SSH_KNOWN_HOSTS (server host key line)
+# Repo variables: SSH_HOST, SSH_PORT, SSH_USER, STAGING_PATH, PRODUCTION_PATH, PRODUCTION_LIVE
+
+name: Deploy website
+
+on:
+  push:
+    branches: [main]
+    paths: ["website/**", ".github/workflows/deploy-website.yml", ".gitmodules"]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Where to deploy
+        type: choice
+        options: [staging, production]
+        default: staging
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-website
+  cancel-in-progress: false
+
+env:
+  HUGO_VERSION: 0.170.1
+  HUGO_SHA256: 841a5462853aefc9942e4de1e8a5d75584b6a5181941e6ad3f1d745190e03cd8
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      targets: ${{ steps.pick.outputs.targets }}
+    steps:
+      - id: pick
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo 'targets=["${{ inputs.target }}"]' >> "$GITHUB_OUTPUT"
+          elif [ "${{ vars.PRODUCTION_LIVE }}" = "true" ]; then
+            echo 'targets=["staging","production"]' >> "$GITHUB_OUTPUT"
+          else
+            echo 'targets=["staging"]' >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    needs: plan
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 1
+      matrix:
+        target: ${{ fromJSON(needs.plan.outputs.targets) }}
+    environment: ${{ matrix.target }}
+    defaults:
+      run:
+        working-directory: website
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Install Hugo ${{ env.HUGO_VERSION }} (checksum verified)
+        working-directory: ${{ runner.temp }}
+        run: |
+          f=hugo_extended_${HUGO_VERSION}_linux-amd64.tar.gz
+          curl -fsSLO "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/$f"
+          echo "${HUGO_SHA256}  $f" | sha256sum -c -
+          tar -xzf "$f" hugo && sudo mv hugo /usr/local/bin/ && hugo version
+
+      - name: Refuse to publish images with metadata (GPS etc.)
+        run: python3 scripts/strip_image_metadata.py --check
+
+      - name: Build
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          if [ "$TARGET" = production ]; then
+            hugo --gc --minify --environment production --baseURL https://motumtech.in/
+          else
+            # Test site: absolute links point at itself and search engines are told to stay away.
+            HUGO_PARAMS_ENV=staging hugo --gc --minify --environment staging --baseURL https://new.motumtech.in/
+            printf '\n<IfModule mod_headers.c>\nHeader always set X-Robots-Tag "noindex, nofollow"\n</IfModule>\n' >> public/.htaccess
+          fi
+          test -f public/index.html && test -f public/.htaccess
+
+      - name: Upload to Hostinger
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+          HOST: ${{ vars.SSH_HOST }}
+          PORT: ${{ vars.SSH_PORT }}
+          USER: ${{ vars.SSH_USER }}
+          DEST: ${{ matrix.target == 'production' && vars.PRODUCTION_PATH || vars.STAGING_PATH }}
+        run: |
+          set -euo pipefail
+          # Safety: never rsync --delete into an unexpected place (or an unset variable).
+          [ -n "$DEST" ] && [ -n "$HOST" ] && [ -n "$USER" ] && [ -n "$PORT" ]
+          case "$DEST" in
+            *public_html*) ;;
+            *) echo "Refusing to deploy: destination '$DEST' is not inside a public_html folder"; exit 1 ;;
+          esac
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          rsync -rlcvz --delete \
+            --exclude '.well-known/' \
+            -e "ssh -p $PORT -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes" \
+            public/ "$USER@$HOST:${DEST%/}/"
+          rm -f ~/.ssh/deploy_key
