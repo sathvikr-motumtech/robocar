@@ -1,0 +1,42 @@
+{{- /* Giscus comments (stored in GitHub Discussions of the repo set in hugo.yaml → params.giscus). Posts only. */ -}}
+{{- with site.Params.giscus }}
+{{- if eq $.Section "posts" }}
+<div class="giscus-comments" style="margin-top: 2.5rem">
+<script>
+  (function () {
+    var html = document.documentElement;
+    var current = function () {
+      return html.dataset.theme || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    };
+    var s = document.createElement("script");
+    s.src = "https://giscus.app/client.js";
+    s.async = true;
+    s.crossOrigin = "anonymous";
+    var attrs = {
+      "data-repo": {{ .repo }},
+      "data-repo-id": {{ .repoId }},
+      "data-category": {{ .category }},
+      "data-category-id": {{ .categoryId }},
+      "data-mapping": "pathname",
+      "data-strict": "1",
+      "data-reactions-enabled": "1",
+      "data-emit-metadata": "0",
+      "data-input-position": "top",
+      "data-lang": "en",
+      "data-loading": "lazy",
+      "data-theme": current()
+    };
+    for (var k in attrs) s.setAttribute(k, attrs[k]);
+    document.currentScript.parentNode.appendChild(s);
+
+    // Keep the comment box in sync with PaperMod's light/dark toggle.
+    new MutationObserver(function () {
+      var frame = document.querySelector("iframe.giscus-frame");
+      if (frame) frame.contentWindow.postMessage({ giscus: { setConfig: { theme: current() } } }, "https://giscus.app");
+    }).observe(html, { attributes: true, attributeFilter: ["data-theme"] });
+  })();
+</script>
+<noscript>Comments are powered by <a href="https://giscus.app">giscus</a> and need JavaScript.</noscript>
+</div>
+{{- end }}
+{{- end }}
