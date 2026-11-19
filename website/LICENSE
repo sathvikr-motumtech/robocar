@@ -1,0 +1,14 @@
+Copyright (c) 2025-2026 Sathvik R. All rights reserved.
+
+This license covers the website content in this folder: the text of the posts
+and pages and the images and photos under website/content/. It may not be
+copied, republished or modified without written permission. Linking to the
+posts and quoting short excerpts with attribution is welcome.
+
+Not covered by this notice:
+- Code snippets that appear inside posts, and the source code elsewhere in this
+  repository, are licensed under the MIT License (see ../LICENSE).
+- The site's build configuration and scripts (website/hugo.yaml,
+  website/layouts/, website/scripts/, website/archetypes/) are also MIT.
+- Third-party components keep their own licenses: the PaperMod theme
+  (website/themes/PaperMod, MIT) and KaTeX (website/static/katex, MIT).

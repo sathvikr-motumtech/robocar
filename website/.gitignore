@@ -1,0 +1,11 @@
+# Hugo build output
+/public/
+/resources/_gen/
+.hugo_build.lock
+
+# Private material that must never be committed or published
+# (WordPress export XML, database backups, uploads dump, etc.)
+/private/
+
+.DS_Store
+.ipynb_checkpoints/

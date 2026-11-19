@@ -1,0 +1,108 @@
+# Main site configuration. Docs: https://gohugo.io/configuration/
+# Theme docs: https://github.com/adityatelange/hugo-PaperMod/wiki
+
+baseURL: https://motumtech.in/
+locale: en-us
+title: Motum Tech
+theme: PaperMod
+copyright: '© 2025–2026 Sathvik R. All rights reserved. Code samples are [MIT licensed](https://github.com/sathvikr-motumtech/robocar/blob/main/LICENSE).'
+
+enableRobotsTXT: true
+enableGitInfo: false
+buildDrafts: false
+buildFuture: false
+
+pagination:
+  pagerSize: 10
+
+# Posts live at the site root, exactly like the old WordPress URLs.
+permalinks:
+  page:
+    posts: /:slug/   # same URLs as the old WordPress site
+
+taxonomies:
+  tag: tags
+  category: categories
+  series: series
+
+# JSON output on the home page powers the built-in search page.
+outputs:
+  home: [HTML, RSS, JSON]
+
+markup:
+  goldmark:
+    renderer:
+      # Allow raw HTML inside Markdown (needed for migrated WordPress posts and
+      # notebook outputs such as pandas tables). Content is only written by you.
+      unsafe: true
+    extensions:
+      # Math: $...$ or \(...\) inline, $$...$$ or \[...\] as a block.
+      # Rendered at build time by layouts/_markup/render-passthrough.html.
+      # Write \$ when you need a literal dollar sign in text.
+      passthrough:
+        enable: true
+        delimiters:
+          inline: [['\(', '\)'], ['$', '$']]
+          block: [['\[', '\]'], ['$$', '$$']]
+  highlight:
+    codeFences: true
+    guessSyntax: false
+    lineNos: false
+    style: monokai
+  tableOfContents:
+    startLevel: 2
+    endLevel: 4
+
+menus:
+  main:
+    - name: Posts
+      pageRef: /posts
+      weight: 10
+    - name: Archive
+      pageRef: /archives
+      weight: 20
+    - name: Tags
+      pageRef: /tags
+      weight: 30
+    - name: Search
+      pageRef: /search
+      weight: 40
+    - name: About
+      pageRef: /about-me
+      weight: 50
+
+params:
+  env: production
+  description: Motum Tech
+  author: Motum Tech
+  mainSections: [posts]
+  DateFormat: January 2, 2006
+
+  defaultTheme: auto        # follows the visitor's OS; toggle button in header
+  disableThemeToggle: false
+
+  ShowReadingTime: true
+  ShowWordCount: false
+  ShowPostNavLinks: true
+  ShowBreadCrumbs: true
+  ShowCodeCopyButtons: true
+  ShowShareButtons: false
+  ShowRssButtonInSectionTermList: true
+  showtoc: true
+  tocopen: false
+
+  assets:
+    disableHLJS: true       # use Hugo's built-in highlighter instead
+
+  homeInfoParams:
+    Title: Motum Tech
+    Content: Notes on code, math and engineering.
+
+  fuseOpts:
+    isCaseSensitive: false
+    shouldSort: true
+    location: 0
+    distance: 1000
+    threshold: 0.4
+    minMatchCharLength: 2
+    keys: [title, permalink, summary, content]
