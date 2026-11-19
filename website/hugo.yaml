@@ -98,6 +98,15 @@ params:
     Title: Motum Tech
     Content: Notes on code, math and engineering.
 
+  # Comments on posts, stored in GitHub Discussions (Announcements category, so only
+  # the site owner and giscus can start threads). Readers sign in with GitHub.
+  comments: true
+  giscus:
+    repo: sathvikr-motumtech/robocar
+    repoId: R_kgDOPEBx8g
+    category: Announcements
+    categoryId: DIC_kwDOPEBx8s4DLeXb
+
   fuseOpts:
     isCaseSensitive: false
     shouldSort: true
