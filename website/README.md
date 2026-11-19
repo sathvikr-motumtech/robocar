@@ -21,7 +21,7 @@ hugo new posts/my-new-post/index.md   # create a post (starts as a draft)
 hugo server --buildDrafts             # live preview at http://localhost:1313
 # edit content/posts/my-new-post/index.md, drop images in the same folder
 # set `draft: false` when ready
-git add . && git commit -m "Add my new post" && git push   # publishes (once deploy is set up)
+git add . && git commit -m "Add my new post" && git push   # publishes to motumtech.in in ~1 minute (see the Actions tab)
 ```
 
 ## Writing
