@@ -101,7 +101,13 @@ jobs:
         run: |
           set -euo pipefail
           # Safety: never rsync --delete into an unexpected place (or an unset variable).
-          [ -n "$DEST" ] && [ -n "$HOST" ] && [ -n "$USER" ] && [ -n "$PORT" ]
+          for v in DEST HOST USER PORT; do [ -n "${!v}" ] || { echo "Refusing to deploy: $v is not set"; exit 1; }; done
+          if [ "${{ matrix.target }}" = production ] && [ "${{ vars.PRODUCTION_LIVE }}" != "true" ]; then
+            echo "Refusing to deploy to production: PRODUCTION_LIVE is not 'true' (WordPress is still live)."; exit 1
+          fi
+          # The test subdomain's folder may live inside the main public_html; never delete it from there.
+          EXTRA=""
+          if [ "${{ matrix.target }}" = production ]; then EXTRA="--exclude=/new/"; fi
           case "$DEST" in
             *public_html*) ;;
             *) echo "Refusing to deploy: destination '$DEST' is not inside a public_html folder"; exit 1 ;;
@@ -109,7 +115,7 @@ jobs:
           install -m 700 -d ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
-          rsync -rlcvz --delete \
+          rsync -rlcvz --delete $EXTRA \
             --exclude '.well-known/' \
             -e "ssh -p $PORT -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes" \
             public/ "$USER@$HOST:${DEST%/}/"
